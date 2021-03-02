@@ -6,7 +6,7 @@ from PIL import ImageDraw, ImageFont, Image
 
 ##########모델 로드
 
-labels = ['thumb_up', 'thumb_down', 'stop_sign']
+labels = [ 'go_away', 'stop_sign' ]
 
 model = tf.keras.models.load_model('models/hand_gestures_classification_model/saved_model')
 

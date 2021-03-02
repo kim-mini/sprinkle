@@ -17,8 +17,8 @@ file_names = [file_name for file_name in file_names if not file_name.startswith 
 for file_name in file_names:
     file_path = '{}/{}'.format(data_dir, file_name)
     image = Image.open(file_path)
-    image = image.resize((224, 224)) 
-    numpy_image = np.array(image) 
+    image = image.resize((224, 224))
+    numpy_image = np.array(image)
     images.append(numpy_image)
 x_data.append(images)
 y_data.append(0)
@@ -30,8 +30,8 @@ file_names = [file_name for file_name in file_names if not file_name.startswith 
 for file_name in file_names:
     file_path = '{}/{}'.format(data_dir, file_name)
     image = Image.open(file_path)
-    image = image.resize((224, 224)) 
-    numpy_image = np.array(image) 
+    image = image.resize((224, 224))
+    numpy_image = np.array(image)
     images.append(numpy_image)
 x_data.append(images)
 y_data.append(1)
@@ -43,8 +43,8 @@ file_names = [file_name for file_name in file_names if not file_name.startswith 
 for file_name in file_names:
     file_path = '{}/{}'.format(data_dir, file_name)
     image = Image.open(file_path)
-    image = image.resize((224, 224)) 
-    numpy_image = np.array(image) 
+    image = image.resize((224, 224))
+    numpy_image = np.array(image)
     images.append(numpy_image)
 x_data.append(images)
 y_data.append(2)
@@ -54,8 +54,9 @@ labels = ['thumb_up', 'thumb_down', 'stop_sign']
 ##########데이터 분석
 
 ##########데이터 전처리
-
+print(x_data)
 x_data = np.array(x_data)
+
 x_train = x_data
 x_test = x_data
 y_train = y_data
@@ -158,5 +159,5 @@ for epoch_index in range(epochs):
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 #model.compile(loss=tf.keras.losses.CategoricalCrossentropy(), optimizer=tf.keras.optimizers.Adam(learning_rate=0.01), metrics=[tf.keras.metrics.Accuracy()])
 
-model.fit(x_train, y_train, epochs=50, validation_data=(x_test, y_test), callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath='models/hand_gestures_classification_model/saved_model', save_best_only=True, verbose=1)]) 
+model.fit(x_train, y_train, epochs=50, validation_data=(x_test, y_test), callbacks=[tf.keras.callbacks.ModelCheckpoint(filepath='models/hand_gestures_classification_model/saved_model', save_best_only=True, verbose=1)])
 #'''

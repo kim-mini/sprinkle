@@ -2,33 +2,58 @@ import tensorflow as tf
 import cv2
 import time
 import numpy as np
+import socket
 from PIL import ImageDraw, ImageFont, Image
+
+# tcp로 연결한 라즈베리파이 연결
+HOST='192.168.1.4'
+PORT=65223
+
+#socket에서 수신한 버퍼를 반환하는 함수
+def recvall( sock, count ):
+    # 바이트 문자열
+    buf = b''
+    while count:
+        newbuf = sock.recv( count )
+        if not newbuf: return None
+        buf += newbuf
+        count -= len( newbuf )
+    return buf
+
+#TCP 사용
+s=socket.socket( socket.AF_INET,socket.SOCK_STREAM )
+print( 'Socket created' )
+
+#서버의 아이피와 포트번호 지정
+s.bind(( HOST, PORT ))
+print( 'Socket bind complete' )
+# 클라이언트의 접속을 기다린다. (클라이언트 연결을 10개>까지 받는다)
+s.listen( 10 )
+print( 'Socket now listening' )
+
+#연결, conn에는 소켓 객체, addr은 소켓에 바인드 된 주소
+conn,addr=s.accept()
 
 ##########모델 로드
 
-labels = ['thumb_up', 'thumb_down', 'stop_sign']
+labels = [ 'go_away' ]
 
 model = tf.keras.models.load_model('models/hand_gestures_classification_model/saved_model')
 
 ##########모델 예측
-# tcp로 연결한 라즈베리파이 연결
-HOST='192.168.1.4'
-PORT=65223
-cap = cv2.VideoCapture(0)
-time.sleep(3) #warming up
-if not cap.isOpened():
-    exit()
 
 images = []
 label = 0
 confidence = 0
 while True:
-    ret, image = cap.read()
+    length = recvall(conn, 16)
+    stringData = recvall(conn, int(length))
+    data = np.fromstring( stringData, dtype = 'uint8' )
+    #data를 디코딩한다.
+    image = cv2.imdecode( data, cv2.IMREAD_COLOR )
+
     #print(type(image)) #<class 'numpy.ndarray'>
     #print(image.shape) #(720, 1280, 3)
-
-    if not ret:
-        break
 
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     rgb_image = cv2.resize(rgb_image, (224, 224))
@@ -57,5 +82,4 @@ while True:
     if cv2.waitKey(1) == ord('q'): #key 입력이 있을때까지 1밀리 세컨드 만큼 대기
         break
 
-cap.release()
 cv2.destroyAllWindows()
