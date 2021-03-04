@@ -21,10 +21,13 @@ import pyautogui
 import configparser
 import socket
 import threading
+from multiprocessing import Process, Manager
+#Value, Array
+
 
 # tcp로 연결한 라즈베리파이 연결
-HOST='192.168.1.4'
-PORT=65223
+HOST='192.168.1.136'
+PORT=65226
 
 #socket에서 수신한 버퍼를 반환하는 함수
 def recvall( sock, count ):
@@ -153,37 +156,22 @@ else:
 # and initialize the FPS counter
 if verbose>0: print("[INFO] Attemping to start video stream...")
 
-#if (args.video == ''):
-#    vs = VideoStream(0, usePiCamera=False).start()
-#else:
-#    vs = FileVideoStream(args.video).start()
-
-time.sleep(2.0)
-#fps = FPS().start()
-Q = deque(maxlen=qsize)
-SQ = deque(maxlen=sqsize)
+# #if (args.video == ''):
+# #    vs = VideoStream(0, usePiCamera=False).start()
+# #else:
+# #    vs = FileVideoStream(args.video).start()
+#
+# time.sleep(2.0)
+# #fps = FPS().start()
+# Q = deque(maxlen=qsize)
+# SQ = deque(maxlen=sqsize)
 act = deque(['No gesture', "No gesture"], maxlen=3)
 
-# loop over the frames from the video stream
-def getVideo():
-    # get first frame and use it to initialize our deque
-    #frame = vs.read()
-    #if frame is None:
-    #    print('[ERROR] No video stream is available')
-
-    #else:
-    length = recvall(conn, 16)
-    stringData = recvall(conn, int(length))
-    data = np.fromstring(stringData, dtype='uint8')
-    # data를 디코딩한다.
-    frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
-    frame = transform(frame)
-    for i in range(qsize):
-        Q.append(frame)
-    if (verbose > 0): 
-        print('[INFO] Video stream started...')
-
-
+# loop over the frames from the video stream\
+bnt = True
+# 통신으로 영상을 받으면 stack에 저장
+def write( stack ):
+    global bnt
     while(True):
 
         length = recvall(conn, 16)
@@ -191,99 +179,107 @@ def getVideo():
         data = np.fromstring(stringData, dtype='uint8')
         # data를 디코딩한다.
         frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
+        frame = transform(frame)
+        if bnt:
+            stack.append( frame )
+            bnt = False
+        else:
+            stack[0] = frame
 
         # grab the frame from the threaded video stream
         if frame is None:
             print('[ERROR] No video stream is available')
             break
 
-        oframe = cv2.flip(frame.copy(),1)  # copy original frame for display later as mirror image
+def R_train( stack ):
+    while True:
+        if len( stack ) != 0:
+            frame = stack.pop()
+            oframe = cv2.flip(frame.copy(),1)  # copy original frame for display later as mirror image
 
-        # resize it to have a maximum height of 100 pixels (to be consistent with jester v1 dataset)
-        frame = cv2.resize(frame, dsize=(176, 100))
-        # (h, w) = frame.shape[:2]
+            # resize it to have a maximum height of 100 pixels (to be consistent with jester v1 dataset)
+            frame = cv2.resize(frame, dsize=(176, 100))
+            # (h, w) = frame.shape[:2]
 
-        # frame = transform(frame)  # preprocessing function
-        Q.append(frame)
+            frame = transform(frame)
 
-        # format data to torch
-        imgs = []
-        for img in Q:
-            img = transform(img)
-            imgs.append(torch.unsqueeze(img, 0))
+            # format data to torch
+            imgs = []
 
-        data = torch.cat(imgs)
-        data = data.permute(1, 0, 2, 3)
-        data = data[None, :, :, :, :]
-        target = [2]
-        target = torch.tensor(target)
-        data = data.to(device)
+            imgs.append(torch.unsqueeze(frame, 0))
 
-        model.eval()  # set model to eval mode
-        output = model(data)
+            data = torch.cat(imgs)
+            data = data.permute(1, 0, 2, 3)
+            data = data[None, :, :, :, :]
+            target = [2]
+            target = torch.tensor(target)
+            data = data.to(device)
 
-        # send to softmax layer
-        output = torch.nn.functional.softmax(output, dim=1)
+            model.eval()  # set model to eval mode
+            output = model(data)
 
-        k = 5
-        ts, pred = output.detach().cpu().topk(k, 1, True, True)
-        top5 = [gesture_dict[pred[0][i].item()] for i in range(k)]
+            # send to softmax layer
+            output = torch.nn.functional.softmax(output, dim=1)
 
-        pi = [pred[0][i].item() for i in range(k)]
-        ps = [ts[0][i].item() for i in range(k)]
-        top1 = top5[0] if ps[0] > threshold else gesture_dict[0]
+            k = 5
+            ts, pred = output.detach().cpu().topk(k, 1, True, True)
+            top5 = [gesture_dict[pred[0][i].item()] for i in range(k)]
 
-        hist = {}
-        for i in range(num_classes):
-            hist[i] = 0
-        for i in range(len(pi)):
-            hist[pi[i]] = ps[i]
-        SQ.append(list(hist.values()))
+            pi = [pred[0][i].item() for i in range(k)]
+            ps = [ts[0][i].item() for i in range(k)]
+            top1 = top5[0] if ps[0] > threshold else gesture_dict[0]
 
-        ave_pred = np.array(SQ).mean(axis=0)
-        top1 = gesture_dict[np.argmax(ave_pred)] if max(ave_pred) > threshold else gesture_dict[0]
+            hist = {}
+            for i in range(num_classes):
+                hist[i] = 0
+            for i in range(len(pi)):
+                hist[pi[i]] = ps[i]
+            #SQ.append(list(hist.values()))
 
-        # show the output frame
-        if (args.debug):
-            cv2.putText(oframe, top1 + ' %.2f' % ps[0], (20,20), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 2, lineType=cv2.LINE_AA)
-            cv2.putText(oframe, top1 + ' %.2f' % ps[0], (20,20), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 1, lineType=cv2.LINE_AA)
-            cv2.imshow("Frame", oframe)
+            ave_pred = np.array(list(hist.values())).mean(axis=0)
+            top1 = gesture_dict[np.argmax(ave_pred)] if max(ave_pred) > threshold else gesture_dict[0]
 
-        top1 = top1.lower()
-        act.append(top1)
+            # show the output frame
+            if (args.debug):
+                cv2.putText(oframe, top1 + ' %.2f' % ps[0], (20,20), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 2, lineType=cv2.LINE_AA)
+                cv2.putText(oframe, top1 + ' %.2f' % ps[0], (20,20), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 1, lineType=cv2.LINE_AA)
+                cv2.imshow("Frame", oframe)
 
-        # control an application based on mapped outputs
-        # same top1 for consecutive frames
-        if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
-            if top1 in action.keys():
-                t = action[top1]['fn']
-                k = action[top1]['keys']
+            top1 = top1.lower()
+            act.append(top1)
 
-                if verbose > 1: 
-                    print('[DEBUG]', top1, '-- ', t, str(k))
-                    t = Threading.Thread( target=sendingMsg, args=( top1 ))
-                    t.start()
-                if t == 'typewrite':
-                    pyautogui.typewrite(k)
-                elif t == 'press':
-                    pyautogui.press(k)
-                elif t == 'hotkey':
-                    for key in k:
-                        pyautogui.keyDown(key)
-                    for key in k[::-1]:
-                        pyautogui.keyUp(key)
-                    # pyautogui.hotkey(",".join(k))
+            # control an application based on mapped outputs
+            # same top1 for consecutive frames
+            if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
+                if top1 in action.keys():
+                    t = action[top1]['fn']
+                    k = action[top1]['keys']
 
-        key = cv2.waitKey(1) & 0xFF
+                    if verbose > 1:
+                        print('[DEBUG]', top1, '-- ', t, str(k))
+                        t = threading.Thread( target=sendingMsg, args=( top1 ))
+                        t.start()
+                    if t == 'typewrite':
+                        pyautogui.typewrite(k)
+                    elif t == 'press':
+                        pyautogui.press(k)
+                    elif t == 'hotkey':
+                        for key in k:
+                            pyautogui.keyDown(key)
+                        for key in k[::-1]:
+                            pyautogui.keyUp(key)
+                        # pyautogui.hotkey(",".join(k))
 
-        # if the `q` key was pressed, break from the loop
-        if key == ord("q"):
-            break
+            key = cv2.waitKey(1) & 0xFF
 
-        # update the FPS counter
-        #fps.update()
-    # stop the timer and display FPS information
-   # fps.stop()
+            # if the `q` key was pressed, break from the loop
+            if key == ord("q"):
+                break
+        cv2.destroyAllWindows()
+            # update the FPS counter
+            #fps.update()
+        # stop the timer and display FPS information
+       # fps.stop()
 
 def sendingMsg(Msg):
     while True:
@@ -293,16 +289,23 @@ def sendingMsg(Msg):
     conn.close()
 
 
+if __name__=='__main__':
+    q = Manager().list()
+    pw = Process( target=write, args=(q,) )
+    pr = Process( target=R_train, args=(q,))
+    pw.start()
+    pr.start()
 
-threading._start_new_thread( getVideo, () )
+    pr.join()
+    pw.terminate()
 
-#print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-#print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+    #print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    #print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
-while True:
-    pass
+    # while True:
+    #     pass
 
-# do a bit of cleanup
-cv2.destroyAllWindows()
-vs.stop()
+    # do a bit of cleanup
+
+    #vs.stop()
     
