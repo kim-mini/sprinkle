@@ -21,7 +21,9 @@ def gettingMsg():
         else:
            data = str(data).split("b'", 1)[1].rsplit("'",1)[0]
            print(data)
-    s.close()
+           if data == 'q':
+              cam.release()
+              s.close()
 
 def sendVideo(VideoFrame):
     while True:
@@ -32,7 +34,8 @@ def sendVideo(VideoFrame):
         result, frame = cv2.imencode('.jpg', frame, encode_param)
         # frame을 String 형태로 변환
         data = np.array(frame)
-        stringData = data.tostring()
+        #stringData = data.tostring()
+        stringData = data.tobytes()
 	 
         #서버에 데이터 전송
 	    #(str(len(stringData))).encode().ljust(16)
@@ -54,8 +57,8 @@ if __name__ == '__main__':
     cam = cv2.VideoCapture(0)
 	 
     ## 이미지 속성 변경 3 = width, 4 = height
-    cam.set(3, 320)
-    cam.set(4, 240)
+    #cam.set(3, 320)
+    #cam.set(4, 240)
 	 
     ## 0~100에서 90의 이미지 품질로 설정 (default = 95)
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
