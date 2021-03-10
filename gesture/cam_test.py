@@ -175,14 +175,10 @@ def image_train( outV, TQ, SQ, GQ, act):
                     TQ.append(frame)
                 if (verbose > 0): print('[INFO] Video stream started...')
                 ret = False
-        oframe = cv2.flip(frame.copy(), 1)
+        oframe = frame.copy()
         frame = imutils.resize(frame, height=100)
         TQ.append(frame)
-        # h, w, c = frame.shape
-        # print('h :', h)
-        # print('w :', w)
-        # print('c :', c)
-        #print(frame.shape)
+
         imgs = []
         for img in TQ:
             # print(img.shape)
@@ -226,11 +222,13 @@ def image_train( outV, TQ, SQ, GQ, act):
             cv2.putText(oframe, top1 + ' %.2f' % ps[0], (20, 20), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 1,
                         lineType=cv2.LINE_AA)
             cv2.imshow('image_display', oframe)
+            key = cv2.waitKey(1) & 0xff
 
         top1 = top1.lower()
         GQ.put(top1)
-        act.append(top1)
-        #print(top1)
+        #act.append(top1)
+        act.put(top1)
+        #print("act : ",act)
         end = time.time()
         #print('학습 완료시간까지 걸리는 시간 : {}'.format(end-start))
 
@@ -238,27 +236,29 @@ def image_train( outV, TQ, SQ, GQ, act):
 
 # 제스쳐 인식 되면 라즈베리로 보내준다
 def sendingMsg( conn, act, GQ ):
+    act_list = list()
     while True:
+        basic_gesture = ['doing other things', 'no gesture']
         top1 = GQ.get()
+        top1 = top1.lower()
+
         if top1 is None or act is None: break
         # q or esc 키를 누르면 꺼짐
-        if top1 == 'q':
-            print('종료합니다')
-            data = top1.encode("utf-8")
-            conn.send(data)
-        if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
 
-            if top1 in action.keys():
-                t = action[top1]['fn']
-                k = action[top1]['keys']
+        act_list.append( act.get())
+       # print("act2 : ", act_list)
+        #if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
+        if len(set(act_list)) == 2:
+            if top1 in basic_gesture:
+                pass
+            else:
+                data = top1
+                data = data.encode("utf-8")
+                conn.send(data)
+                act_list = act_list[-1:]
 
-                if verbose > 1:
-                    print('[DEBUG]', top1)
-                    data = top1
-                    if data is None:  break
-                    data = data.encode( "utf-8" )
-                    conn.send( data )
-                    print(data)
+        if len(act_list) == 10:
+            act_list = act_list[-1:]
     conn.close()
 
 
@@ -274,8 +274,10 @@ if __name__ == '__main__':
     SQ = deque(maxlen=qsize)
     # 훈련 시킬 이미지 ( 사이즈 등 전처리 후 들어가게 된다 )
     TQ = deque(maxlen=qsize)
-    act = deque(['No gesture', "No gesture"], maxlen=3)
-
+    # act = deque(['No gesture', "No gesture"], maxlen=3)
+    act = Queue(maxsize=3)
+    act.put('No gesture')
+    act.put('No gesture')
     HOST = '192.168.1.4'
     PORT = 65223
 
@@ -302,6 +304,8 @@ if __name__ == '__main__':
     p1 = Process( target=sendingMsg, args=( conn, act, GQ, ))
     p1.start()
 
+    time.sleep(2.0)
+    fps = FPS().start()
     while True:
         length = recvall(conn, 16)
         stringData = recvall(conn, int(length))
@@ -315,18 +319,22 @@ if __name__ == '__main__':
         time.sleep(0.010)
 
         key = cv2.waitKey(1) & 0xff
-        if key == 'q' or key == 27:
-            GQ.put('q')
-            break
 
+        fps.update()
 
+    print(1)
     VQ.put(None)
-    SQ.put(None)
+    SQ.append(None)
     GQ.put(None)
     TQ.append(None)
     outV.put(None)
 
     pV.join()
-    # pTV.join()
+    pTV.join()
     p1.join()
 
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+
+    cv2.destroyAllWindows()

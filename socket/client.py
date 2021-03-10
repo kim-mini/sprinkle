@@ -4,6 +4,7 @@ import socket
 import numpy as np
 import threading
 from queue import Queue
+import time
 
 HOST = 'awsbit.mynetgear.com'
 PORT = 65223
@@ -21,16 +22,12 @@ def gettingMsg():
         else:
            data = str(data).split("b'", 1)[1].rsplit("'",1)[0]
            print(data)
-           if data == 'q':
-              cam.release()
-              s.close()
 
 def sendVideo(VideoFrame):
     while True:
         frame = videoFrame.get()
         if videoFrame == None:
             break
-        print('1')
         result, frame = cv2.imencode('.jpg', frame, encode_param)
         # frame을 String 형태로 변환
         data = np.array(frame)
@@ -62,7 +59,9 @@ if __name__ == '__main__':
 	 
     ## 0~100에서 90의 이미지 품질로 설정 (default = 95)
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-	 
+    
+    prev_time = 0
+    FPS = 20
     while True:
         # 비디오의 한 프레임씩 읽는다.
         # 제대로 읽으면 ret = True, 실패면 ret = False, frame에는 읽은 프레임
@@ -71,8 +70,15 @@ if __name__ == '__main__':
         # encode_param의 형식으로 frame을 jpg로 이미지를 인코딩한다.
         if not ret:
             break
-        videoFrame.put(frame)
-        print('2')
+        current_time = time.time() - prev_time
+        if current_time > 1./FPS:
+            prev_time = time.time()
+            videoFrame.put(frame)
+
+        key = cv2.waitKey(1) & 0xff
+        if key == 27 or key == 'q':
+            break
+
     th1.join()
     th2.join()
     cam.release()
