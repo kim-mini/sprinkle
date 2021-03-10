@@ -1,3 +1,5 @@
+# https://github.com/rmorriss/lightify_scripts/blob/master/osram_control.py
+
 #!/usr/bin/env python
 from multiprocessing import Process, Queue, set_start_method
 from PIL import Image
@@ -282,7 +284,9 @@ if __name__ == '__main__':
     PORT = 65223
 
     # TCP 사용
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # UDP 사용
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     print('Socket created')
 
     # 서버의 아이피와 포트번호 지정
@@ -319,7 +323,9 @@ if __name__ == '__main__':
         time.sleep(0.010)
 
         key = cv2.waitKey(1) & 0xff
-
+        if key == 'q':
+            cv2.destroyAllWindows()
+            break
         fps.update()
 
     print(1)
@@ -337,4 +343,4 @@ if __name__ == '__main__':
     print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
     print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
-    cv2.destroyAllWindows()
+

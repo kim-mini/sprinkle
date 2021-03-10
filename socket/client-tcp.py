@@ -10,7 +10,9 @@ HOST = 'awsbit.mynetgear.com'
 PORT = 65223
 
 ## TCP 사용
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# UDP 사용
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 ## server ip, port
 s.connect((HOST, PORT))
 
@@ -76,7 +78,7 @@ if __name__ == '__main__':
             videoFrame.put(frame)
 
         key = cv2.waitKey(1) & 0xff
-        if key == 27 or key == 'q':
+        if key == 'q':
             break
 
     th1.join()
