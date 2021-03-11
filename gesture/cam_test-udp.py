@@ -156,7 +156,7 @@ def image_display( VQ, conn ):
         key = cv2.waitKey(1) & 0xff  # Added
         continue
     cv2.destroyAllWindows()
-    conn.close()
+    socket.close()
 
 # 이미지를 학습해서 제스쳐를 인식한다
 def image_train( outV, TQ, SQ, GQ, act):
@@ -261,7 +261,7 @@ def sendingMsg( conn, act, GQ, addr ):
 
         if len(act_list) == 10:
             act_list = act_list[-1:]
-    conn.close()
+    socket.close()
 
 
 if __name__ == '__main__':
@@ -307,11 +307,15 @@ if __name__ == '__main__':
 
     time.sleep(2.0)
     fps = FPS().start()
+    data = None
     while True:
 
         s += conn
 
         if len(s) == (1024 * 225):
+            # length = recvall(s, 16)
+            # stringData = recvall(s, int(length))
+            # data = np.frombuffer(stringData, dtype='uint8')
             data = np.frombuffer(s, dtype=np.uint8)
             cv2.imshow("frame", data)
             s = b''
