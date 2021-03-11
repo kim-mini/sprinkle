@@ -10,9 +10,8 @@ HOST = 'awsbit.mynetgear.com'
 PORT = 65223
 
 ## TCP 사용
-#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# UDP 사용
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 ## server ip, port
 s.connect((HOST, PORT))
 

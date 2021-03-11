@@ -284,9 +284,8 @@ if __name__ == '__main__':
     PORT = 65223
 
     # TCP 사용
-    #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # UDP 사용
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     print('Socket created')
 
     # 서버의 아이피와 포트번호 지정

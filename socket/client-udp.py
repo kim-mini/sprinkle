@@ -9,8 +9,7 @@ import time
 HOST = 'awsbit.mynetgear.com'
 PORT = 65223
 
-## TCP 사용
-#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 # UDP 사용
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 ## server ip, port
@@ -38,7 +37,7 @@ def sendVideo(VideoFrame):
 	 
         #서버에 데이터 전송
 	    #(str(len(stringData))).encode().ljust(16)
-        s.sendall((str(len(stringData))).encode().ljust(16) + stringData)
+        s.sendto((str(len(stringData))).encode().ljust(16) + stringData)
     s.close()
 	 
 if __name__ == '__main__':
@@ -55,9 +54,9 @@ if __name__ == '__main__':
     ## webcam 이미지 capture
     cam = cv2.VideoCapture(0)
 	 
-    ## 이미지 속성 변경 3 = width, 4 = height
-    #cam.set(3, 320)
-    #cam.set(4, 240)
+    # 이미지 속성 변경 3 = width, 4 = height
+    cam.set(3, 240)
+    cam.set(4, 320)
 	 
     ## 0~100에서 90의 이미지 품질로 설정 (default = 95)
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]

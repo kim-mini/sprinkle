@@ -237,7 +237,7 @@ def image_train( outV, TQ, SQ, GQ, act):
 
 
 # 제스쳐 인식 되면 라즈베리로 보내준다
-def sendingMsg( conn, act, GQ ):
+def sendingMsg( conn, act, GQ, addr ):
     act_list = list()
     while True:
         basic_gesture = ['doing other things', 'no gesture']
@@ -256,7 +256,7 @@ def sendingMsg( conn, act, GQ ):
             else:
                 data = top1
                 data = data.encode("utf-8")
-                conn.send(data)
+                conn.sendto(data, addr)
                 act_list = act_list[-1:]
 
         if len(act_list) == 10:
@@ -283,21 +283,18 @@ if __name__ == '__main__':
     HOST = '192.168.1.4'
     PORT = 65223
 
-    # TCP 사용
-    #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     # UDP 사용
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     print('Socket created')
 
     # 서버의 아이피와 포트번호 지정
-    s.bind((HOST, PORT))
+    sock.bind((HOST, PORT))
     print('Socket bind complete')
-    # 클라이언트의 접속을 기다린다. (클라이언트 연결을 10개까지 받는다)
-    s.listen(10)
-    print('Socket now listening')
 
-    # 연결, conn에는 소켓 객체, addr은 소켓에 바인드 된 주소
-    conn, addr = s.accept()
+    s = b''
+    conn, addr = sock.recvfrom(1024)
+
     # 입력받은 이미지를 화면에 출력해주는 함수
     pV = Process(target=image_display, args=( VQ, conn, ))
     pV.start()
@@ -305,16 +302,20 @@ if __name__ == '__main__':
     pTV = Process(target=image_train, args=( outV, TQ, SQ, GQ, act, ))
     pTV.start()
     # 메세지를 보내는 함수
-    p1 = Process( target=sendingMsg, args=( conn, act, GQ, ))
+    p1 = Process( target=sendingMsg, args=( conn, act, GQ, addr, ))
     p1.start()
 
     time.sleep(2.0)
     fps = FPS().start()
     while True:
-        length = recvall(conn, 16)
-        stringData = recvall(conn, int(length))
-        #data = np.fromstring(stringData, dtype='uint8')
-        data = np.frombuffer(stringData, dtype='uint8')
+
+        s += conn
+
+        if len(s) == (1024 * 20):
+            data = np.frombuffer(s, dtype=np.uint8)
+            cv2.imshow("frame", data)
+            s = b''
+
         if data is None: break
         # data를 디코딩한다.
         frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
