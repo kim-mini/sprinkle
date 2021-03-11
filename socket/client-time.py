@@ -15,16 +15,19 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ## server ip, port
 s.connect((HOST, PORT))
 
-
+start = 0
 def gettingMsg():
+    global start
     while True:
         data = s.recv(1024)
         if not data: break
         else:
-           data = str(data).split("b'", 1)[1].rsplit("'",1)[0]
-           print(data)
+            data = str(data).split("b'", 1)[1].rsplit("'",1)[0]
+            print(data)
+            print(time.time() - start)
 
 def sendVideo(VideoFrame):
+    global start
     while True:
         frame = videoFrame.get()
         if videoFrame == None:
@@ -38,6 +41,7 @@ def sendVideo(VideoFrame):
         #서버에 데이터 전송
 	    #(str(len(stringData))).encode().ljust(16)
         s.sendall((str(len(stringData))).encode().ljust(16) + stringData)
+        start = time.time()
     s.close()
 	 
 if __name__ == '__main__':
@@ -55,8 +59,8 @@ if __name__ == '__main__':
     cam = cv2.VideoCapture(0)
 	 
     ## 이미지 속성 변경 3 = width, 4 = height
-    cam.set(3, 320)
-    cam.set(4, 240)
+    #cam.set(3, 320)
+    #cam.set(4, 240)
 	 
     ## 0~100에서 90의 이미지 품질로 설정 (default = 95)
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]

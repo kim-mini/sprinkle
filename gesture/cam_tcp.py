@@ -232,7 +232,7 @@ def image_train( outV, TQ, SQ, GQ, act):
         act.put(top1)
         #print("act : ",act)
         end = time.time()
-        #print('학습 완료시간까지 걸리는 시간 : {}'.format(end-start))
+        # print('학습 완료시간까지 걸리는 시간 : {}'.format(end-start))
 
 
 
@@ -250,14 +250,14 @@ def sendingMsg( conn, act, GQ ):
         act_list.append( act.get())
        # print("act2 : ", act_list)
         #if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
-        if len(set(act_list)) == 2:
-            if top1 in basic_gesture:
-                pass
-            else:
-                data = top1
-                data = data.encode("utf-8")
-                conn.send(data)
-                act_list = act_list[-1:]
+        # if len(set(act_list)) == 2:
+            # if top1 in basic_gesture:
+            #     pass
+            # else:
+        data = top1
+        data = data.encode("utf-8")
+        conn.send(data)
+        act_list = act_list[-1:]
 
         if len(act_list) == 10:
             act_list = act_list[-1:]
