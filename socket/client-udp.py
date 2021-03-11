@@ -37,7 +37,8 @@ def sendVideo(VideoFrame):
 	 
         #서버에 데이터 전송
 	    #(str(len(stringData))).encode().ljust(16)
-        s.sendto((str(len(stringData))).encode().ljust(16) + stringData)
+        for i in range(255):
+            s.sendto((str(len(stringData))).encode().ljust(16) + stringData, (HOST, PORT))
     s.close()
 	 
 if __name__ == '__main__':

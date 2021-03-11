@@ -311,7 +311,7 @@ if __name__ == '__main__':
 
         s += conn
 
-        if len(s) == (1024 * 20):
+        if len(s) == (1024 * 225):
             data = np.frombuffer(s, dtype=np.uint8)
             cv2.imshow("frame", data)
             s = b''
