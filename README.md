@@ -18,5 +18,5 @@
 
 TCP소켓 통신을 통해 영상과 어떤 제스처인지 주고 받습니다
 
-multi processing을 구현했습니다
+multi threade, processing을 구현했습니다
 
