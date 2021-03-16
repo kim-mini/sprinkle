@@ -249,15 +249,15 @@ def sendingMsg( conn, act, GQ ):
 
         act_list.append( act.get())
        # print("act2 : ", act_list)
-        if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
-            if len(set(act_list)) == 2:
-                if top1 in basic_gesture:
-                    pass
-                else:
-                    data = top1
-                    data = data.encode("utf-8")
-                    conn.send(data)
-                    act_list = act_list[-1:]
+       # if (act[0] != act[1] and len(set(list(act)[1:])) == 1):
+        if len(set(act_list)) == 2:
+            if top1 in basic_gesture:
+                pass
+            else:
+                data = top1
+                data = data.encode("utf-8")
+                conn.send(data)
+                act_list = act_list[-1:]
 
         if len(act_list) == 10:
             act_list = act_list[-1:]

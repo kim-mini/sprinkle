@@ -30,9 +30,18 @@ def gettingMsg( action ):
             data = str(data).split("b'", 1)[1].rsplit("'",1)[0]
             print(data)
             if data == 'swiping left':
+                if th3.is_alive():
+                    th3.stop()
                 action.put( True )
+                th4 = threading.Thread(target=button1Function, args=(action,))
+                th4.start()
+
             elif data == 'swiping right':
+                if th4.is_alive():
+                    th4.stop()
                 action.put(False)
+                th3 = threading.Thread(target=button1Function, args=(action,))
+                th3.start()
 
 def sendVideo(VideoFrame):
     while True:
@@ -53,36 +62,42 @@ def sendVideo(VideoFrame):
 def button1Function( action ):
     global objVR
     global thdRunner
-    action = action.get()
+    while True:
+        action = action.get()
 
-    if action == False:
-        print( "녹음을 시작합니다.")
-        thdRunner = threading.Thread( target = objVR.run, args=() )
-        print(" 음성인식을 시작합니다.")
-        thdRunner.start()
+        if action == False:
+            print( "녹음을 시작합니다.")
+            thdRunner = threading.Thread( target = objVR.run, args=() )
+            print(" 음성인식을 시작합니다.")
+            thdRunner.start()
 
-        action = True
-    else:
-        print( "녹음중.. ")
+            action = True
+        else:
+            print( "녹음중.. ")
 
-    if action == True:
-        print( "녹음 정지합니다.")
-        objVR.setStopsign( True )
+def button2Function(action):
+    global objVR
+    global thdRunner
+    while True:
+        action = action.get()
+        if action == True:
+            print( "녹음 정지합니다.")
+            objVR.setStopsign( True )
 
-        while 1:
-            # print( self.thdRunner.is_alive() )
-            if thdRunner.is_alive() == False:
-                break
-        objVR.stop()
-        print( "음성 인식을 종료합니다.")
+            while 1:
+                # print( self.thdRunner.is_alive() )
+                if thdRunner.is_alive() == False:
+                    break
+            objVR.stop()
+            print( "음성 인식을 종료합니다.")
 
-        thdRunner.join()
-        # print(self.thdRunner.is_alive())
+            thdRunner.join()
+            # print(self.thdRunner.is_alive())
 
-        action = False
+            action = False
 
-    else:
-        print(" 녹음을 하지않고있습니다.")
+        else:
+            print(" 녹음을 하지않고있습니다.")
 
 if __name__ == '__main__':
 
@@ -91,11 +106,11 @@ if __name__ == '__main__':
 
     th1 = threading.Thread(target=gettingMsg, args=( action, ))
     th2 = threading.Thread(target=sendVideo, args=(videoFrame, ))
-    th3 = threading.Thread(target=button1Function, args=(action,))
+
 
     th1.start()
     th2.start()
-    th3.start()
+
 
 	 
 	 
